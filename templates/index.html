@@ -1,17 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factory Control Panel</title>
+    <title>Contrôle du Système</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .button-row { margin-bottom: 20px; }
+        button { 
+            padding: 10px 15px; 
+            margin-right: 10px; 
+            background-color: red; 
+            color: white; 
+            border: none; 
+        }
+        button:hover { background-color: #45a049; }
+        #status { 
+            margin-top: 20px; 
+            padding: 10px; 
+            background-color: #f0f0f0; 
+            border-radius: 5px; 
+        }
+    </style>
 </head>
 <body>
-    <h1>Factory Control Panel</h1>
-    <button onclick="location.href='/start_entry'">Start Entry Conveyor</button>
-    <button onclick="location.href='/stop_entry'">Stop Entry Conveyor</button><br><br>
-    <button onclick="location.href='/start_exit'">Start Exit Conveyor</button>
-    <button onclick="location.href='/stop_exit'">Stop Exit Conveyor</button><br><br>
-    <button onclick="location.href='/start_sorter1'">Start Sorter 1 Turn</button>
-    <button onclick="location.href='/stop_sorter1'">Stop Sorter 1 Turn</button>
+    <h1>Interface de Contrôle</h1>
+    
+    <div class="button-row">
+        <h2>Convoyeur d'Entrée</h2>
+        <button onclick="sendCommand('/start_entry')">Démarrer</button>
+        <button onclick="sendCommand('/stop_entry')">Arrêter</button>
+    </div>
+    
+    <div class="button-row">
+        <h2>Convoyeur de Sortie</h2>
+        <button onclick="sendCommand('/start_exit')">Démarrer</button>
+        <button onclick="sendCommand('/stop_exit')">Arrêter</button>
+    </div>
+    
+    <div class="button-row">
+        <h2>Trieuse 1</h2>
+        <button onclick="sendCommand('/start_sorter1')">Démarrer</button>
+        <button onclick="sendCommand('/stop_sorter1')">Arrêter</button>
+    </div>
+    
+    <div id="status">Statut: Prêt</div>
+    
+    <script>
+        function sendCommand(url) {
+            document.getElementById('status').innerHTML = 'Statut: Envoi de la commande...';
+            
+            fetch(url)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('status').innerHTML = 'Statut: ' + data;
+                })
+                .catch(error => {
+                    document.getElementById('status').innerHTML = 'Erreur: ' + error;
+                });
+        }
+    </script>
 </body>
 </html>
