@@ -1,62 +1,198 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Contrôle du Système</title>
+    <title>FLask x Factory io </title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .button-row { margin-bottom: 20px; }
+        .control-panel {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .active { background-color: lightgreen; }
+        .inactive { background-color: red; }
         button { 
             padding: 10px 15px; 
-            margin-right: 10px; 
-            background-color: red; 
-            color: white; 
-            border: none; 
+            margin: 5px; 
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
         }
-        button:hover { background-color: #45a049; }
-        #status { 
-            margin-top: 20px; 
-            padding: 10px; 
-            background-color: #f0f0f0; 
-            border-radius: 5px; 
+        .control-button { 
+            background-color: blue; color: white;
+            transition: 0.1s;
         }
+
+        .control-button:active{
+            transform: scale(1.2);
+        }
+
+
+        .release-button { 
+            background-color: orange; color: white; 
+            transition: 0.1s;
+        }
+
+        .release-button:active{
+            transform: scale(1.1);
+        }
+
+
+        .disabled { opacity: 0.5; cursor: not-allowed; }
+
+
+    
+
     </style>
 </head>
 <body>
-    <h1>Interface de Contrôle</h1>
-    
-    <div class="button-row">
-        <h2>Convoyeur d'Entrée</h2>
-        <button onclick="sendCommand('/start_entry')">Démarrer</button>
-        <button onclick="sendCommand('/stop_entry')">Arrêter</button>
+    <h1>Control dashboard</h1>
+
+    <div class="control-panel">
+        <h2>
+            <span class="status-indicator" id="entry-status"></span>
+            Entry conveyor
+        </h2>
+        <div id="entry-controls">
+            <button class="control-button" id="entry-toggle">Take control</button>
+            <button class="release-button" id="entry-release" style="display: none;">Give back control</button>
+        </div>
     </div>
-    
-    <div class="button-row">
-        <h2>Convoyeur de Sortie</h2>
-        <button onclick="sendCommand('/start_exit')">Démarrer</button>
-        <button onclick="sendCommand('/stop_exit')">Arrêter</button>
+
+    <div class="control-panel">
+        <h2>
+            <span class="status-indicator" id="exit-status"></span>
+            Exit conveyor
+        </h2>
+        <div id="exit-controls">
+            <button class="control-button" id="exit-toggle">Take control</button>
+            <button class="release-button" id="exit-release" style="display: none;">Give back control</button>
+        </div>
     </div>
-    
-    <div class="button-row">
-        <h2>Trieuse 1</h2>
-        <button onclick="sendCommand('/start_sorter1')">Démarrer</button>
-        <button onclick="sendCommand('/stop_sorter1')">Arrêter</button>
+
+    <div class="control-panel">
+        <h2>
+            <span class="status-indicator" id="sorter1-status"></span>
+            Sorter 1
+        </h2>
+        <div id="sorter1-controls">
+            <button class="control-button" id="sorter1-toggle">Take control</button>
+            <button class="release-button" id="sorter1-release" style="display: none;">Give back control</button>
+        </div>
     </div>
-    
-    <div id="status">Statut: Prêt</div>
-    
+
+    <div class="control-panel">
+        <h2>
+            <span class="status-indicator" id="sorter2-status"></span>
+            Sorter 2
+        </h2>
+        <div id="sorter2-controls">
+            <button class="control-button" id="sorter2-toggle">Take control</button>
+            <button class="release-button" id="sorter2-release" style="display: none;">Give back control</button>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <h2>
+            <span class="status-indicator" id="sorter3-status"></span>
+            Sorter 3
+        </h2>
+        <div id="sorter3-controls">
+            <button class="control-button" id="sorter3-toggle">Take control</button>
+            <button class="release-button" id="sorter3-release" style="display: none;">Give back control</button>
+        </div>
+    </div>
+
+
     <script>
-        function sendCommand(url) {
-            document.getElementById('status').innerHTML = 'Statut: Envoi de la commande...';
-            
-            fetch(url)
-                .then(response => response.text())
+        const controls = {
+            entry: { controlled: false, state: false },
+            exit: { controlled: false, state: false },
+            sorter1: { controlled: false, state: false },
+            sorter2: { controlled: false, state: false },
+            sorter3: { controlled: false, state: false }
+        };
+
+        function setupControl(name) {
+            const toggleBtn = document.getElementById(`${name}-toggle`);
+            const releaseBtn = document.getElementById(`${name}-release`);
+            const statusIndicator = document.getElementById(`${name}-status`);
+
+            toggleBtn.addEventListener('click', () => {
+                if (!controls[name].controlled) {
+                    fetch(`/toggle_${name}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) return;
+                            controls[name].controlled = true;
+                            toggleBtn.textContent = 'ON/OFF';
+                            releaseBtn.style.display = 'inline-block';
+                            document.getElementById('status').textContent = data.message;
+                        });
+                } else {
+                    fetch(`/toggle_${name}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) { return }
+                        });
+                }
+            });
+
+            releaseBtn.addEventListener('click', () => {
+                fetch(`/release_${name}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) { return;}
+                        controls[name].controlled = false;
+                        toggleBtn.textContent = 'Take control';
+                        releaseBtn.style.display = 'none';
+                        document.getElementById('status').textContent = data.message;
+                    });
+            });
+        }
+
+        setupControl('entry');
+        setupControl('exit');
+        setupControl('sorter1');
+        setupControl('sorter2');
+        setupControl('sorter3');
+
+        function updateState() {
+            fetch('/get_state')
+                .then(response => response.json())
                 .then(data => {
-                    document.getElementById('status').innerHTML = 'Statut: ' + data;
-                })
-                .catch(error => {
-                    document.getElementById('status').innerHTML = 'Erreur: ' + error;
+                    ['entry', 'exit', 'sorter1','sorter2','sorter3'].forEach(name => {
+                        const stateKey = `${name}_state`;
+                        const controlKey = `${name}_controlled_by_flask`;
+                        
+                        document.getElementById(`${name}-status`).className = 
+                            'status-indicator ' + (data[stateKey] ? 'active' : 'inactive');
+
+
+
+                        
+                        if (data[controlKey] !== controls[name].controlled) {
+                            controls[name].controlled = data[controlKey];
+                            const toggleBtn = document.getElementById(`${name}-toggle`);
+                            const releaseBtn = document.getElementById(`${name}-release`);
+                            
+                            toggleBtn.textContent = data[controlKey] ? 'ON/OFF' : 'Take control';
+                            releaseBtn.style.display = data[controlKey] ? 'inline-block' : 'none';
+                        }
+                    });
                 });
         }
+
+        setInterval(updateState, 500);
+        updateState();
     </script>
 </body>
 </html>

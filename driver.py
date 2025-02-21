@@ -6,6 +6,7 @@
 
 from pyModbusTCP.client import ModbusClient
 from time import sleep
+from state import system_state  
 
 #############
 # VARIABLES #
@@ -42,19 +43,19 @@ def run():
 
 
     #INIT SETUP
-    
-    client.write_single_coil(EntryConveyor,1)
+    client.write_single_coil(EntryConveyor, 1)
     client.write_single_coil(ExitConveyor,1)
     client.write_single_coil(StopBlade,0)
 
     client.write_single_coil(SorterBelt1,1)
     client.write_single_coil(SorterBelt2,1)
     client.write_single_coil(SorterBelt3,1)
-                    
-    client.write_single_coil(SorterTurn1,0)
-    client.write_single_coil(SorterTurn2,0)
-    client.write_single_coil(SorterTurn3,1)
 
+
+    client.write_single_coil(SorterTurn1,0)
+    client.write_single_coil(SorterTurn2,0)        
+    client.write_single_coil(SorterTurn3,1)
+            
     client.write_single_coil(counter1, 1) 
     client.write_single_coil(counter2, 1) 
     client.write_single_coil(counter3, 1)
@@ -64,9 +65,15 @@ def run():
     count3=0
     client.write_single_register(counter1, count1)              
     client.write_single_register(counter2, count2)              
-    client.write_single_register(counter3, count3)              
+    client.write_single_register(counter3, count3)
     
-    #DRIVER LOGIC
+    system_state.entry_conveyor_state = True
+    system_state.exit_conveyor_state = True
+    system_state.sorter1_state = False
+    system_state.sorter2_state = False
+    system_state.sorter3_state = True           
+    
+    #MAIN DRIVER LOGIC
 
     try:
         while True:
@@ -74,42 +81,72 @@ def run():
 
             if sensor_value:
         
-                color = sensor_value[0]            
+                color = sensor_value[0]
 
-                if color == 1 or color == 2 or color == 3:
+                if color in [1, 2, 3]:
                     count1= count1 +1                
                     client.write_single_register(counter1, count1)              
                     sleep(1)
-                    client.write_single_coil(EntryConveyor,0)
+                    if not system_state.entry_controlled_by_flask:
+                        client.write_single_coil(EntryConveyor,0)
+                        system_state.entry_conveyor_state = False  
                     sleep(0.2)
                     client.write_single_coil(StopBlade,1)
-                    client.write_single_coil(SorterTurn1,1)
+                    if not system_state.sorter1_controlled_by_flask:
+                        client.write_single_coil(SorterTurn1,1)
+                        system_state.sorter1_state = True  
+
                     sleep(1)
-                    client.write_single_coil(SorterTurn1,0)
+                    if not system_state.sorter1_controlled_by_flask:
+                        client.write_single_coil(SorterTurn1,0)
+                        system_state.sorter1_state = False 
                     
-                if color == 4 or color == 5 or color == 6:
+                if color in [4, 5, 6]:
                     count2 = count2 +1      
                     client.write_single_register(counter2, count2)                              
                     sleep(1)
-                    client.write_single_coil(EntryConveyor,0)
-                    sleep(0.2)
-                    client.write_single_coil(StopBlade,1)                
-                    client.write_single_coil(SorterTurn2,1)
-                    sleep(4)
-                    client.write_single_coil(SorterTurn2,0)
+                    if not system_state.entry_controlled_by_flask:
+                        client.write_single_coil(EntryConveyor,0)
+                        system_state.entry_conveyor_state = False 
 
-                if color == 7 or color == 8 or color == 9: 
+                    sleep(0.2)
+                    client.write_single_coil(StopBlade,1)   
+                    if not system_state.sorter2_controlled_by_flask:
+                        client.write_single_coil(SorterTurn2,1)
+                        system_state.sorter2_state = True 
+
+                    sleep(4)
+                    if not system_state.sorter2_controlled_by_flask:
+                        client.write_single_coil(SorterTurn2,0)
+                        system_state.sorter2_state = False 
+
+
+                if color in [7, 8, 9]:
                     count3 = count3 + 1      
                     client.write_single_register(counter3, count3)                              
                     sleep(1)
-                    client.write_single_coil(EntryConveyor,0)
+                    if not system_state.entry_controlled_by_flask:
+                        client.write_single_coil(EntryConveyor,0)
+                        system_state.entry_conveyor_state = False 
+
                     sleep(0.2)
                     client.write_single_coil(StopBlade,1)                
                     sleep(6)
-                    client.write_single_coil(SorterTurn2,0)
+
 
                 client.write_single_coil(StopBlade,0)
-                client.write_single_coil(EntryConveyor,1)
+                
+                if not system_state.entry_controlled_by_flask:
+                    client.write_single_coil(EntryConveyor,1)
+                    system_state.entry_conveyor_state = True 
+                if not system_state.exit_controlled_by_flask:
+                    client.write_single_coil(ExitConveyor,1) 
+                    system_state.exit_conveyor_state = True 
+                if not system_state.sorter3_controlled_by_flask:
+                    client.write_single_coil(SorterTurn3,1)
+                    system_state.sorter3_state = True 
+
+
             
     except KeyboardInterrupt:
         print("exiting")
@@ -120,43 +157,46 @@ def run():
 
 #FLASK LOGIC
 
-def start_entry_conveyor():
+def toggle_entry_conveyor():
     client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
     client.open()
-    client.write_single_coil(EntryConveyor, 1)
-    client.close()
-
-def stop_entry_conveyor():
-    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
-    client.open()
-    client.write_single_coil(EntryConveyor, 0)
-    client.close()
-
-def start_exit_conveyor():
-    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
-    client.open()
-    client.write_single_coil(ExitConveyor, 1)
-    client.close()
-
-def stop_exit_conveyor():
-    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
-    client.open()
-    client.write_single_coil(ExitConveyor, 0)
-    client.close()
-
-def start_sorter1():
-    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
-    client.open()
-    client.write_single_coil(SorterTurn1, 1)
-    client.close()
-
-def stop_sorter1():
-    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
-    client.open()
-    client.write_single_coil(SorterTurn1, 0)
+    current_state = client.read_coils(EntryConveyor, 1)[0]
+    client.write_single_coil(EntryConveyor, not current_state)
+    system_state.entry_conveyor_state = not current_state
     client.close()
 
 
+def toggle_exit_conveyor():
+    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
+    client.open()
+    current_state = client.read_coils(ExitConveyor, 1)[0]
+    client.write_single_coil(ExitConveyor, not current_state)
+    system_state.exit_conveyor_state = not current_state
+    client.close()
+
+def toggle_sorter1():
+    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
+    client.open()
+    current_state = client.read_coils(SorterTurn1, 1)[0]
+    client.write_single_coil(SorterTurn1, not current_state)
+    system_state.sorter1_state = not current_state
+    client.close()
+
+def toggle_sorter2():
+    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
+    client.open()
+    current_state = client.read_coils(SorterTurn2, 1)[0]
+    client.write_single_coil(SorterTurn2, not current_state)
+    system_state.sorter2_state = not current_state
+    client.close()
+
+def toggle_sorter3():
+    client = ModbusClient(slaveAddress,port=slavePort,unit_id=1)
+    client.open()
+    current_state = client.read_coils(SorterTurn3, 1)[0]
+    client.write_single_coil(SorterTurn3, not current_state)
+    system_state.sorter3_state = not current_state
+    client.close()
 
 if __name__ == "__main__":
     run()
