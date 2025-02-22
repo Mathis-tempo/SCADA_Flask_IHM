@@ -1,6 +1,4 @@
 from flask import Flask, render_template, jsonify
-from threading import Thread
-import driver
 import time
 from state import system_state
 
@@ -8,13 +6,6 @@ app = Flask(__name__)
 
 def start_flask():
     app.run(debug=True, host='0.0.0.0', use_reloader=False)
-
-def start_driver():
-    time.sleep(5)
-    try:
-        driver.run()
-    except Exception as e:
-        print(f"Error while launching driver: {e}")
 
 @app.route('/')
 def index():
@@ -35,9 +26,20 @@ def get_state():
         'sorter3_controlled_by_flask': system_state.sorter3_controlled_by_flask,
     })
 
+
+@app.route('/get_counters')
+def get_counters():
+    return jsonify({
+        'Blue_Counter': system_state.BlueCounter,
+        'Green_Counter': system_state.GreenCounter,
+        'Metal_Counter': system_state.MetalCounter,
+
+    })
+
 @app.route('/toggle_entry')
 def toggle_entry():
     try:
+        import driver  
         if not system_state.entry_controlled_by_flask:
             system_state.entry_controlled_by_flask = True
         else:
@@ -53,6 +55,7 @@ def toggle_entry():
 @app.route('/toggle_exit')
 def toggle_exit():
     try:
+        import driver  
         if not system_state.exit_controlled_by_flask:
             system_state.exit_controlled_by_flask = True
         else:
@@ -68,6 +71,7 @@ def toggle_exit():
 @app.route('/toggle_sorter1')
 def toggle_sorter1():
     try:
+        import driver  
         if not system_state.sorter1_controlled_by_flask:
             system_state.sorter1_controlled_by_flask = True
         else:
@@ -83,6 +87,7 @@ def toggle_sorter1():
 @app.route('/toggle_sorter2')
 def toggle_sorter2():
     try:
+        import driver  
         if not system_state.sorter2_controlled_by_flask:
             system_state.sorter2_controlled_by_flask = True
         else:
@@ -98,6 +103,7 @@ def toggle_sorter2():
 @app.route('/toggle_sorter3')
 def toggle_sorter3():
     try:
+        import driver  
         if not system_state.sorter3_controlled_by_flask:
             system_state.sorter3_controlled_by_flask = True
         else:
@@ -167,17 +173,6 @@ def release_sorter3():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    flask_thread = Thread(target=start_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
 
-    driver_thread = Thread(target=start_driver)
-    driver_thread.daemon = True
-    driver_thread.start()
-    
-    try:
-        while True:
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        print("Application ended")
+if __name__ == '__main__':
+    start_flask()

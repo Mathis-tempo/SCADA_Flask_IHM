@@ -7,6 +7,7 @@
 from pyModbusTCP.client import ModbusClient
 from time import sleep
 from state import system_state  
+from threading import Thread
 
 #############
 # VARIABLES #
@@ -136,16 +137,19 @@ def run():
 
                 client.write_single_coil(StopBlade,0)
                 
-                if not system_state.entry_controlled_by_flask:
-                    client.write_single_coil(EntryConveyor,1)
-                    system_state.entry_conveyor_state = True 
-                if not system_state.exit_controlled_by_flask:
-                    client.write_single_coil(ExitConveyor,1) 
-                    system_state.exit_conveyor_state = True 
-                if not system_state.sorter3_controlled_by_flask:
-                    client.write_single_coil(SorterTurn3,1)
-                    system_state.sorter3_state = True 
+            if not system_state.entry_controlled_by_flask:
+                client.write_single_coil(EntryConveyor,1)
+                system_state.entry_conveyor_state = True 
+            if not system_state.exit_controlled_by_flask:
+                client.write_single_coil(ExitConveyor,1) 
+                system_state.exit_conveyor_state = True 
+            if not system_state.sorter3_controlled_by_flask:
+                client.write_single_coil(SorterTurn3,1)
+                system_state.sorter3_state = True 
 
+            system_state.BlueCounter = count1
+            system_state.GreenCounter = count2
+            system_state.MetalCounter = count3      
 
             
     except KeyboardInterrupt:
@@ -198,6 +202,10 @@ def toggle_sorter3():
     system_state.sorter3_state = not current_state
     client.close()
 
-if __name__ == "__main__":
+if __name__ == "__main__":   
+    from flask_app import start_flask  
+    flask_thread = Thread(target=start_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    
     run()
-

@@ -10,6 +10,10 @@ class ConveyorState:
         self.exit_controlled_by_flask = False
         self.sorter1_controlled_by_flask = False    
         self.sorter2_controlled_by_flask = False    
-        self.sorter3_controlled_by_flask = False    
+        self.sorter3_controlled_by_flask = False  
+
+        self.BlueCounter=0
+        self.GreenCounter=0
+        self.MetalCounter=0  
 
 system_state = ConveyorState()
